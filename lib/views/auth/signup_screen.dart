@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:sayf/constants.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sayf/views/auth/signup.dart';
 
 import '../../constants.dart';
 import '../widgets/button_widget.dart';
 import '../widgets/inputInfo.dart';
+import '../widgets/move.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -56,7 +58,9 @@ class _SignupScreenState extends State<SignupScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: (){},
+                  onPressed: (){
+
+                  },
                   child: Text('Reset password', style: GoogleFonts.roboto(
                     fontSize: 15.0,
                     fontWeight: FontWeight.bold,
@@ -78,31 +82,18 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           ),
           
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 10.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text("Don't have an account?", style: TextStyle(
-                  fontSize: 15.0
-                ),),
-                
-                TextButton(
-                  onPressed: (){},
-                  child: Text('Sign up', style: GoogleFonts.roboto(
-                    fontSize: 15.0,
-                    fontWeight: FontWeight.bold,
-                    color: KaccentColor,
-                  ),),
-                ),
+          MoveWidget(text: "Don't have an account?", tap: (){
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => Signup()),
+              );
 
-              ],
-            ),
-
-          ),
+          },)
 
         ],
       ),
     );
   }
 }
+
+

@@ -3,16 +3,16 @@ import 'package:flutter/material.dart';
 import '../../constants.dart';
 
 class InputInfo extends StatelessWidget {
-  const InputInfo({
+  InputInfo({
     super.key,
     required TextEditingController controller1,
-    required this.content, required this.is_obscure, this.suffixIcon,
+    required this.content,  required this.is_obscure, this.suffixIcon,
   }) : _controller1 = controller1;
 
 
   final TextEditingController _controller1;
   final String content;
-  final bool is_obscure;
+  bool is_obscure = false;
   final IconButton? suffixIcon;
 
   @override
@@ -21,7 +21,7 @@ class InputInfo extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
       child: Container(
         child: TextField(
-          obscureText: is_obscure,
+          obscureText: is_obscure!,
           controller: _controller1,
           decoration: InputDecoration(
             hintText: content,
