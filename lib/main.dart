@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sayf/config/supbase.dart';
 import 'package:sayf/views/auth/signup_screen.dart';
+import 'package:sayf/views/splash_scree.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -19,7 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SignupScreen(),
+      home: SplashScree(),
     );
   }
 }
