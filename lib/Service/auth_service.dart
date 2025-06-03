@@ -24,7 +24,7 @@ class AuthService {
         return null; // Success
       }
 
-      return "✅ تم التسجيل، تحقق من بريدك الإلكتروني لتفعيل الحساب.";
+      return "✅ You have registered, check your email to activate your account.";
     } on AuthException catch (e) {
       return e.message;
     } catch (e) {

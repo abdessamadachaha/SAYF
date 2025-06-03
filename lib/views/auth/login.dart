@@ -52,25 +52,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// ✅ reset password
-  void _resetPassword() async {
-    final email = _controller1.text.trim();
-
-    if (!email.contains("@") || !email.contains(".")) {
-      ShowSnackBar(context, 'Enter your email to reset password', Colors.red);
-      return;
-    }
-
-    setState(() => isLoading = true);
-    final result = await _authService.resetPassword(email);
-    setState(() => isLoading = false);
-
-    if (result == null) {
-      ShowSnackBar(context, 'Check your email to reset password', Colors.green);
-    } else {
-      ShowSnackBar(context, result, Colors.red);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: _resetPassword,
+                onPressed: (){},
                 child: Text(
                   'Reset password',
                   style: GoogleFonts.roboto(
