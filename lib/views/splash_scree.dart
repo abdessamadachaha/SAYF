@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sayf/constants.dart';
-import 'package:sayf/views/auth/signup_screen.dart';
+import 'package:sayf/views/auth/login.dart';
 
 class SplashScree extends StatefulWidget {
   const SplashScree({super.key});
@@ -16,7 +16,7 @@ class _SplashScreeState extends State<SplashScree> {
     Future.delayed(Duration(seconds: 3), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => SignupScreen()),
+        MaterialPageRoute(builder: (context) => LoginScreen()),
       );
     });
     super.initState();

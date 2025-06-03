@@ -6,11 +6,12 @@ class MoveWidget extends StatelessWidget {
   MoveWidget({
     super.key,
     required this.text,
-    required this.tap,
+    required this.tap, required this.move,
   });
 
   final String text;
   void Function() tap;
+  final String move;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +27,7 @@ class MoveWidget extends StatelessWidget {
           TextButton(
             onPressed: tap,
 
-            child: Text('Sign up', style: GoogleFonts.roboto(
+            child: Text(move, style: GoogleFonts.roboto(
               fontSize: 15.0,
               fontWeight: FontWeight.bold,
               color: KaccentColor,

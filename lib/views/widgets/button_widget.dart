@@ -27,11 +27,12 @@ class button extends StatelessWidget {
       onPressed: tap,
       child: Text(
           text,
-          style: GoogleFonts.roboto(
+          style: TextStyle(
             color: Colors.white,
-            fontSize: 25.0,
+            fontSize: 22.0,
+            letterSpacing: 1.3,
             fontWeight: FontWeight.bold,
-          )
+          ),
       ),
     );
   }
