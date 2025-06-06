@@ -46,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => isLoading = false);
 
     if (result == null) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => home()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => Home()));
     } else {
       ShowSnackBar(context, result, Colors.red);
     }
