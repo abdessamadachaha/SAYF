@@ -134,60 +134,82 @@ class _OrderScreenState extends State<OrderScreen> {
       });
     }
   }
+  Future<bool> _checkAvailability() async {
+  final response = await supabase
+      .from('orders')
+      .select()
+      .eq('product_id', widget.product.id)
+      .not('end_day', 'lt', startDate!.toIso8601String())
+      .not('start_day', 'gt', endDate!.toIso8601String());
+
+  final existingOrders = response;
+  return existingOrders.isEmpty;
+}
+
 
   Future<void> _placeOrder() async {
-    if (!_formKey.currentState!.validate()) return;
-    
-    if (startDate == null || endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select rental dates")),
-      );
-      return;
-    }
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => isPlacingOrder = true);
+  if (startDate == null || endDate == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please select rental dates")),
+    );
+    return;
+  }
 
-    try {
-      await supabase.from('orders').insert({
-        'product_id': widget.product.id,
-        'customer_id': widget.customerId,
-        'start_day': startDate!.toIso8601String(),
-        'end_day': endDate!.toIso8601String(),
-        'total_price': totalPrice,
-        'address': addressController.text.trim(),
-        'status': 'pending',
-      });
+  setState(() => isPlacingOrder = true);
 
-      if (!mounted) return;
-      
-      // Show success dialog
-      await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Order Confirmed"),
-          content: const Text("Your order has been successfully placed!"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop(true);
-              },
-              child: const Text("OK"),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${e.toString()}")),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => isPlacingOrder = false);
-      }
+  final available = await _checkAvailability();
+
+  if (!available) {
+    setState(() => isPlacingOrder = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("This product is already booked for selected dates.")),
+    );
+    return;
+  }
+
+  try {
+    await supabase.from('orders').insert({
+      'product_id': widget.product.id,
+      'customer_id': widget.customerId,
+      'start_day': startDate!.toIso8601String(),
+      'end_day': endDate!.toIso8601String(),
+      'total_price': totalPrice,
+      'address': addressController.text.trim(),
+      'status': 'pending',
+    });
+
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Order Confirmed"),
+        content: const Text("Your order has been successfully placed!"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop(true);
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: ${e.toString()}")),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => isPlacingOrder = false);
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -587,7 +609,7 @@ class _OrderScreenState extends State<OrderScreen> {
                 ),
               )
             : Text(
-                "Confirm Order",
+                "Pay Now",
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
