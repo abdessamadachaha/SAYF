@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:sayf/constants.dart';
+import 'package:sayf/models/person.dart';
+import 'package:sayf/views/favorite.dart';
 import 'package:sayf/views/homepage.dart';
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  final Person person;
+   Home({super.key, required this.person});
 
   @override
   State<Home> createState() => _HomeState();
@@ -12,12 +15,13 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   int _selectedIndex = 0;
-  final pages = [Homepage(), Homepage(), Homepage()];
 
 
 
   @override
   Widget build(BuildContext context) {
+      final pages = [Homepage(person: widget.person), FavoriteScreen(), FavoriteScreen()];
+
     return Scaffold(
       // Your body content here
       body: pages[_selectedIndex],
