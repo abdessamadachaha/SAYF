@@ -29,6 +29,13 @@ class _OrderScreenState extends State<OrderScreen> {
   bool isLoadingLocation = false;
   bool isPlacingOrder = false;
   final _formKey = GlobalKey<FormState>();
+  List<DateTimeRange> _reservedDates = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReservedDates();
+  }
 
   double get totalPrice {
     if (startDate == null || endDate == null) return 0;
@@ -40,6 +47,22 @@ class _OrderScreenState extends State<OrderScreen> {
   void dispose() {
     addressController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchReservedDates() async {
+    final response = await supabase
+        .from('orders')
+        .select('start_day, end_day')
+        .eq('product_id', widget.product.id)
+        .or('status.eq.pending,status.eq.confirmed');
+
+    setState(() {
+      _reservedDates = response.map<DateTimeRange>((item) {
+        final start = DateTime.parse(item['start_day']).toLocal();
+        final end = DateTime.parse(item['end_day']).toLocal();
+        return DateTimeRange(start: start, end: end);
+      }).toList();
+    });
   }
 
   Future<void> _getCurrentAddress() async {
@@ -101,107 +124,160 @@ class _OrderScreenState extends State<OrderScreen> {
     }
   }
 
-  Future<void> _selectDate(bool isStart) async {
-    final DateTime? picked = await showModalBottomSheet<DateTime>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.7,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    isStart ? "Select Start Date" : "Select End Date",
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const Divider(),
-              Expanded(
-                child: Theme(
-                  data: Theme.of(context).copyWith(
-                    colorScheme: ColorScheme.light(
-                      primary: KprimaryColor,
-                      onPrimary: Colors.white,
-                      surface: Colors.white,
-                      onSurface: Colors.black,
-                    ),
-                  ),
-                  child: CalendarDatePicker(
-                    initialDate: isStart ? DateTime.now() : (startDate ?? DateTime.now()),
-                    firstDate: isStart ? DateTime.now() : (startDate ?? DateTime.now()),
-                    lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-                    onDateChanged: (date) {
-                      Navigator.pop(context, date);
-                    },
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context, isStart ? DateTime.now() : (startDate ?? DateTime.now())),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: KprimaryColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    minimumSize: const Size(double.infinity, 50),
-                  ),
-                  child: Text(
-                    "Select Today",
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (picked != null && mounted) {
-      setState(() {
-        if (isStart) {
-          startDate = picked;
-          if (endDate != null && endDate!.isBefore(picked)) endDate = null;
-        } else {
-          endDate = picked;
-        }
-      });
+ Future<void> _selectDate(bool isStart) async {
+  // Helper function to check if a date is selectable
+  bool isDateSelectable(DateTime date) {
+    for (final range in _reservedDates) {
+      if (date.isAfter(range.start.subtract(const Duration(days: 1))) &&
+          date.isBefore(range.end.add(const Duration(days: 1)))) {
+        return false;
+      }
     }
+    return true;
   }
 
-  Future<bool> _checkAvailability() async {
-    final response = await supabase
-        .from('orders')
-        .select()
-        .eq('product_id', widget.product.id)
-        .not('end_day', 'lt', startDate!.toIso8601String())
-        .not('start_day', 'gt', endDate!.toIso8601String());
+  // Get a safe initial date that passes the predicate
+  DateTime getSafeInitialDate() {
+    final now = DateTime.now();
+    DateTime baseDate = isStart ? now : (startDate ?? now);
+    
+    for (int i = 0; i < 730; i++) { // Check for next 2 years
+      final candidate = baseDate.add(Duration(days: i));
+      if (isDateSelectable(candidate)) {
+        return candidate;
+      }
+    }
+    return baseDate; // Fallback
+  }
 
-    final existingOrders = response;
-    return existingOrders.isEmpty;
+  final DateTime? picked = await showModalBottomSheet<DateTime>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (context) {
+      return Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isStart ? "Select Start Date" : "Select End Date",
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const Divider(),
+            Expanded(
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  colorScheme: ColorScheme.light(
+                    primary: KprimaryColor,
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Colors.black,
+                  ),
+                ),
+                child: CalendarDatePicker(
+                  initialDate: getSafeInitialDate(),
+                  firstDate: isStart 
+                      ? DateTime.now() 
+                      : (startDate ?? DateTime.now()),
+                  lastDate: DateTime.now().add(const Duration(days: 730)),
+                  selectableDayPredicate: (day) {
+                    // For end date, must be >= start date
+                    if (!isStart && startDate != null && day.isBefore(startDate!)) {
+                      return false;
+                    }
+                    return isDateSelectable(day);
+                  },
+                  onDateChanged: (date) {
+                    Navigator.pop(context, date);
+                  },
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: ElevatedButton(
+                onPressed: () {
+                  final now = DateTime.now();
+                  if (isDateSelectable(now)) {
+                    if (!isStart && startDate != null && now.isBefore(startDate!)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("End date must be after start date"),
+                        ),
+                      );
+                    } else {
+                      Navigator.pop(context, now);
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Selected date is not available"),
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: KprimaryColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: Text(
+                  "Select Today",
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+
+  if (picked != null && mounted) {
+    setState(() {
+      if (isStart) {
+        startDate = picked;
+        // Reset end date if it's now before the new start date
+        if (endDate != null && endDate!.isBefore(picked)) {
+          endDate = null;
+        }
+      } else {
+        endDate = picked;
+      }
+    });
+  }
+}
+
+  Future<bool> _checkAvailability() async {
+    for (final range in _reservedDates) {
+      if (startDate!.isBefore(range.end) && endDate!.isAfter(range.start)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   Future<void> _placeOrder() async {
@@ -290,23 +366,14 @@ class _OrderScreenState extends State<OrderScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              // Product Card
               _buildProductCard(),
               const SizedBox(height: 24),
-              
-              // Delivery Address
               _buildAddressCard(),
               const SizedBox(height: 24),
-              
-              // Rental Period
               _buildDateSelectionCard(),
               const SizedBox(height: 24),
-              
-              // Order Summary
               _buildSummaryCard(),
               const SizedBox(height: 32),
-              
-              // Confirm Button
               _buildConfirmButton(),
             ],
           ),
