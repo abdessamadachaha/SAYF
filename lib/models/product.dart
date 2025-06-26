@@ -2,9 +2,11 @@ class Product {
   final String id;
   final String name;
   final String image;
-  final int price;
+  final double price;
   final String description;
-  final String idSeller;
+  final String idTenant;
+  final bool is_active;
+  
 
   Product({
     required this.id,
@@ -12,8 +14,8 @@ class Product {
     required this.image,
     required this.price,
     required this.description,
-
-    required this.idSeller,
+    required this.idTenant,
+    required this.is_active
   });
 
   @override
@@ -22,4 +24,16 @@ class Product {
 
   @override
   int get hashCode => id.hashCode;
+
+  factory Product.fromMap(Map<String, dynamic> map) {
+  return Product(
+    id: map['id'],
+    name: map['name'],
+    description: map['description'],
+    price: (map['price'] as num).toDouble() ,
+    idTenant: map['tenant_id'],
+    is_active: map['is_active'],
+    image: map['image'],
+  );
+}
 }

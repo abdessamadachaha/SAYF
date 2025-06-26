@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:sayf/constants.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:sayf/models/person.dart';
 import 'package:sayf/views/widgets/ProductCart.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class Homepage extends StatefulWidget {
-  const Homepage({super.key});
+  final Person person;
+  Homepage({super.key, required this.person});
 
   @override
   State<Homepage> createState() => _HomepageState();
@@ -41,12 +44,28 @@ class _HomepageState extends State<Homepage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: KprimaryColor,
-        title: const Text('Abdessamad Achaha', style: TextStyle(color: Colors.white)),
+        title: Text(
+          widget.person.name,
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 17
+          ),
+        ),
         leading: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          child: const CircleAvatar(
-            radius: 40,
-            backgroundImage: AssetImage('assets/sayfIcon.png'),
+          padding:  EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          child: GestureDetector(
+            // onTap: () => Navigator.push(
+            //           context,
+            //           MaterialPageRoute(
+            //             builder: (context) => ProfileScreen(person: widget.person),
+            //           ),
+            child: CircleAvatar(
+              radius: 40,
+              backgroundImage: widget.person.image != null
+                            ? NetworkImage(widget.person.image!)
+                            : AssetImage('assets/avatar.jpg'),
+            ),
           ),
         ),
       ),
@@ -96,7 +115,10 @@ class _HomepageState extends State<Homepage> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.black,
+                    ),
                   );
                 }
 
@@ -115,11 +137,18 @@ class _HomepageState extends State<Homepage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.search_off, size: 60, color: Colors.grey[400]),
+                        Icon(
+                          Icons.search_off,
+                          size: 60,
+                          color: Colors.grey[400],
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'No products found',
-                          style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                          ),
                         ),
                       ],
                     ),
@@ -130,14 +159,14 @@ class _HomepageState extends State<Homepage> {
                   padding: const EdgeInsets.only(top: 16, left: 10),
                   child: GridView.builder(
                     itemCount: products.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      mainAxisExtent: 280,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.75,
-
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 12,
+                          mainAxisExtent: 280,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.75,
+                        ),
                     itemBuilder: (context, index) {
                       return buildProductCard(context, products[index]);
                     },
