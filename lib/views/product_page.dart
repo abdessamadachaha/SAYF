@@ -2,13 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sayf/constants.dart';
 import 'package:sayf/models/product.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class ProductPage extends StatelessWidget {
+class ProductPage extends StatefulWidget {
   final Product product;
   const ProductPage({super.key, required this.product});
 
   @override
+  State<ProductPage> createState() => _ProductPageState();
+}
+
+class _ProductPageState extends State<ProductPage> {
+  String ownerName = '';
+  String ownerImage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    fetchOwner();
+  }
+
+  Future<void> fetchOwner() async {
+    final supabase = Supabase.instance.client;
+    final response = await supabase
+        .from('users')
+        .select('name, image')
+        .eq('id', widget.product.idTenant)
+        .single();
+
+    setState(() {
+      ownerName = response['name'] ?? 'Unknown';
+      ownerImage = response['image'] ?? '';
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final product = widget.product;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -20,6 +51,7 @@ class ProductPage extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 🖼️ Image
           SizedBox(
             height: 250,
             width: double.infinity,
@@ -31,13 +63,13 @@ class ProductPage extends StatelessWidget {
             ),
           ),
 
-          // ✅ Contenu
+          // 📦 Contenu
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: ListView(
                 children: [
-                  // 🏷️ Nom du produit
+                  // 🏷️ Nom
                   Text(
                     product.name,
                     style: GoogleFonts.poppins(
@@ -60,10 +92,7 @@ class ProductPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        "/day",
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      )
+                      const Text("/day", style: TextStyle(fontSize: 16, color: Colors.grey)),
                     ],
                   ),
 
@@ -84,7 +113,30 @@ class ProductPage extends StatelessWidget {
                     ],
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
+
+                  // 👤 Mol Produit
+                  if (ownerName.isNotEmpty)
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundImage: ownerImage.isNotEmpty
+                              ? NetworkImage(ownerImage)
+                              : const AssetImage('assets/avatar.jpg') as ImageProvider,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          ownerName,
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                  const SizedBox(height: 20),
 
                   // 📄 Description
                   Text(
@@ -96,6 +148,7 @@ class ProductPage extends StatelessWidget {
             ),
           ),
 
+          // 🛒 Order Now
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: SizedBox(

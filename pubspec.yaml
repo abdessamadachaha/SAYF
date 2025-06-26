@@ -48,6 +48,7 @@ dev_dependencies:
   lucide_icons_flutter: ^3.0.4
   provider: ^6.1.5
   flutter_lucide: ^1.6.2
+  url_launcher: ^6.2.5
 
 
 
