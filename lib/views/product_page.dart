@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sayf/constants.dart';
 import 'package:sayf/models/product.dart';
+import 'package:sayf/views/reviewPage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProductPage extends StatefulWidget {
   final Product product;
@@ -15,6 +17,7 @@ class ProductPage extends StatefulWidget {
 class _ProductPageState extends State<ProductPage> {
   String ownerName = '';
   String ownerImage = '';
+  String ownerPhone = '';
 
   @override
   void initState() {
@@ -26,14 +29,27 @@ class _ProductPageState extends State<ProductPage> {
     final supabase = Supabase.instance.client;
     final response = await supabase
         .from('users')
-        .select('name, image')
+        .select('name, image, phone')
         .eq('id', widget.product.idTenant)
         .single();
 
     setState(() {
       ownerName = response['name'] ?? 'Unknown';
       ownerImage = response['image'] ?? '';
+      ownerPhone = response['phone'] ?? '';
     });
+  }
+
+  Future<void> _callOwner() async {
+    if (ownerPhone.isEmpty) return;
+    final Uri phoneUri = Uri(scheme: 'tel', path: ownerPhone);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Cannot launch phone call")),
+      );
+    }
   }
 
   @override
@@ -43,15 +59,22 @@ class _ProductPageState extends State<ProductPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(product.name, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
+        title: Text(
+          product.name,
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
         backgroundColor: KprimaryColor,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white, size: 23),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🖼️ Image
+          // 🖼️ Image du produit
           SizedBox(
             height: 250,
             width: double.infinity,
@@ -72,15 +95,12 @@ class _ProductPageState extends State<ProductPage> {
                   // 🏷️ Nom
                   Text(
                     product.name,
-                    style: GoogleFonts.poppins(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
 
                   const SizedBox(height: 10),
 
-                  // 💰 Prix + /day
+                  // 💰 Prix
                   Row(
                     children: [
                       Text(
@@ -100,7 +120,6 @@ class _ProductPageState extends State<ProductPage> {
 
                   // 📍 Adresse
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Icon(Icons.location_on, color: Colors.red, size: 20),
                       const SizedBox(width: 6),
@@ -115,7 +134,7 @@ class _ProductPageState extends State<ProductPage> {
 
                   const SizedBox(height: 20),
 
-                  // 👤 Mol Produit
+                  // 👤 Propriétaire
                   if (ownerName.isNotEmpty)
                     Row(
                       children: [
@@ -126,12 +145,15 @@ class _ProductPageState extends State<ProductPage> {
                               : const AssetImage('assets/avatar.jpg') as ImageProvider,
                         ),
                         const SizedBox(width: 10),
-                        Text(
-                          ownerName,
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                        Expanded(
+                          child: Text(
+                            ownerName,
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
                           ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.call, color: Colors.green),
+                          onPressed: _callOwner,
                         ),
                       ],
                     ),
@@ -143,12 +165,41 @@ class _ProductPageState extends State<ProductPage> {
                     product.description,
                     style: GoogleFonts.roboto(fontSize: 16),
                   ),
+
+                  const SizedBox(height: 24),
+
+                  // 💬 Bouton Commentaires
+                  SizedBox(
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.comment),
+                      label:  Text("Comments", style: GoogleFonts.poppins(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold
+                      ),),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: KaccentColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ReviewPage(productId: product.id),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
 
-          // 🛒 Order Now
+          // 🛒 Bouton Commander
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: SizedBox(
@@ -156,7 +207,10 @@ class _ProductPageState extends State<ProductPage> {
               height: 50,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.shopping_cart),
-                label: const Text("Order Now"),
+                label: Text("Order Now", style: GoogleFonts.poppins(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold
+                      ),),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: KprimaryColor,
                   foregroundColor: Colors.white,
