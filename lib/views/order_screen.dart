@@ -102,23 +102,80 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 
   Future<void> _selectDate(bool isStart) async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? picked = await showModalBottomSheet<DateTime>(
       context: context,
-      initialDate: isStart ? DateTime.now() : (startDate ?? DateTime.now()),
-      firstDate: isStart ? DateTime.now() : (startDate ?? DateTime.now()),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: KprimaryColor,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
-            ),
-            dialogBackgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: child!,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isStart ? "Select Start Date" : "Select End Date",
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: ColorScheme.light(
+                      primary: KprimaryColor,
+                      onPrimary: Colors.white,
+                      surface: Colors.white,
+                      onSurface: Colors.black,
+                    ),
+                  ),
+                  child: CalendarDatePicker(
+                    initialDate: isStart ? DateTime.now() : (startDate ?? DateTime.now()),
+                    firstDate: isStart ? DateTime.now() : (startDate ?? DateTime.now()),
+                    lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+                    onDateChanged: (date) {
+                      Navigator.pop(context, date);
+                    },
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, isStart ? DateTime.now() : (startDate ?? DateTime.now())),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: KprimaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  child: Text(
+                    "Select Today",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -134,82 +191,81 @@ class _OrderScreenState extends State<OrderScreen> {
       });
     }
   }
+
   Future<bool> _checkAvailability() async {
-  final response = await supabase
-      .from('orders')
-      .select()
-      .eq('product_id', widget.product.id)
-      .not('end_day', 'lt', startDate!.toIso8601String())
-      .not('start_day', 'gt', endDate!.toIso8601String());
+    final response = await supabase
+        .from('orders')
+        .select()
+        .eq('product_id', widget.product.id)
+        .not('end_day', 'lt', startDate!.toIso8601String())
+        .not('start_day', 'gt', endDate!.toIso8601String());
 
-  final existingOrders = response;
-  return existingOrders.isEmpty;
-}
-
+    final existingOrders = response;
+    return existingOrders.isEmpty;
+  }
 
   Future<void> _placeOrder() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (startDate == null || endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select rental dates")),
+      );
+      return;
+    }
 
-  if (startDate == null || endDate == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Please select rental dates")),
-    );
-    return;
-  }
+    setState(() => isPlacingOrder = true);
 
-  setState(() => isPlacingOrder = true);
+    final available = await _checkAvailability();
 
-  final available = await _checkAvailability();
-
-  if (!available) {
-    setState(() => isPlacingOrder = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("This product is already booked for selected dates.")),
-    );
-    return;
-  }
-
-  try {
-    await supabase.from('orders').insert({
-      'product_id': widget.product.id,
-      'customer_id': widget.customerId,
-      'start_day': startDate!.toIso8601String(),
-      'end_day': endDate!.toIso8601String(),
-      'total_price': totalPrice,
-      'address': addressController.text.trim(),
-      'status': 'pending',
-    });
-
-    if (!mounted) return;
-
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Order Confirmed"),
-        content: const Text("Your order has been successfully placed!"),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop(true);
-            },
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error: ${e.toString()}")),
-    );
-  } finally {
-    if (mounted) {
+    if (!available) {
       setState(() => isPlacingOrder = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("This product is already booked for selected dates.")),
+      );
+      return;
+    }
+
+    try {
+      await supabase.from('orders').insert({
+        'product_id': widget.product.id,
+        'customer_id': widget.customerId,
+        'start_day': startDate!.toIso8601String(),
+        'end_day': endDate!.toIso8601String(),
+        'total_price': totalPrice,
+        'address': addressController.text.trim(),
+        'status': 'pending',
+      });
+
+      if (!mounted) return;
+      
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Order Confirmed"),
+          content: const Text("Your order has been successfully placed!"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(true);
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: ${e.toString()}")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isPlacingOrder = false);
+      }
     }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -281,11 +337,10 @@ class _OrderScreenState extends State<OrderScreen> {
             decoration: BoxDecoration(
               color: KprimaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
-            ),
-            child: Image(
-              image: NetworkImage(widget.product.image),
-              fit: BoxFit.cover,
-             
+              image: DecorationImage(
+                image: NetworkImage(widget.product.image),
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -370,8 +425,8 @@ class _OrderScreenState extends State<OrderScreen> {
                 vertical: 14,
               ),
               suffixIcon: isLoadingLocation
-                  ?  Padding(
-                      padding: EdgeInsets.all(12),
+                  ? Padding(
+                      padding: const EdgeInsets.all(12),
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor: AlwaysStoppedAnimation<Color>(KprimaryColor),
@@ -548,37 +603,65 @@ class _OrderScreenState extends State<OrderScreen> {
     final isError = isRequired && date == null;
     final color = isError ? Colors.red : KprimaryColor;
 
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isError ? Colors.red : Colors.grey[300]!,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
+        ],
+        border: Border.all(
+          color: isError ? Colors.red : Colors.grey[200]!,
+          width: 1.5,
         ),
-        child: Column(
-          children: [
-            Icon(
-              Icons.calendar_today,
-              size: 20,
-              color: onPressed == null ? Colors.grey[400] : color,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 24,
+                  color: onPressed == null ? Colors.grey[400] : color,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  date == null ? label : DateFormat('MMM dd').format(date),
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: onPressed == null
+                        ? Colors.grey[400]
+                        : isError
+                            ? Colors.red
+                            : Colors.black,
+                  ),
+                ),
+                if (date != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    DateFormat('yyyy').format(date),
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              date == null ? label : DateFormat('MMM dd, yyyy').format(date),
-              style: TextStyle(
-                color: onPressed == null
-                    ? Colors.grey[400]
-                    : isError
-                        ? Colors.red
-                        : Colors.black,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
