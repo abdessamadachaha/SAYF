@@ -50,7 +50,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
       await provider.removeFromDatabase(item);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('فشل في حذف العنصر')),
+        const SnackBar(content: Text('Failed to delete item')),
       );
       debugPrint('Error removing favorite: $e');
     }
@@ -77,7 +77,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
         actions: [
           if (!_isLoading && favorites.isNotEmpty)
             IconButton(
-              icon: const Icon(LucideIcons.refresh_ccw),
+              icon: const Icon(LucideIcons.refresh_ccw, color: Colors.white,),
               onPressed: _loadFavorites,
               tooltip: 'Upload',
             ),
@@ -107,7 +107,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadFavorites,
-              child: const Text('إعادة المحاولة'),
+              child: const Text('Try again'),
             ),
           ],
         ),
@@ -121,15 +121,11 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
           children: [
             Icon(LucideIcons.heart, size: 60, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            const Text(
-              'القائمة فارغة',
-              style: TextStyle(fontSize: 18, color: Colors.black),
+             Text(
+              'The Wishlist is empty',
+              style: GoogleFonts.poppins(fontSize: 18, color: Colors.black),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'اضغط على أيقونة القلب لإضافة عناصر',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-            ),
+            
           ],
         ),
       );
