@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sayf/constants.dart';
+import 'package:sayf/models/person.dart';
+import 'package:sayf/views/success.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
@@ -303,34 +305,40 @@ class _OrderScreenState extends State<OrderScreen> {
     }
 
     try {
-      await supabase.from('orders').insert({
-        'product_id': widget.product.id,
-        'customer_id': widget.customerId,
-        'start_day': startDate!.toIso8601String(),
-        'end_day': endDate!.toIso8601String(),
-        'total_price': totalPrice,
-        'address': addressController.text.trim(),
-        'status': 'pending',
-      });
+      final response = await supabase
+        .from('orders')
+        .insert({
+          'product_id': widget.product.id,
+          'customer_id': widget.customerId,
+          'start_day': startDate!.toIso8601String(),
+          'end_day': endDate!.toIso8601String(),
+          'total_price': totalPrice,
+          'address': addressController.text.trim(),
+          'status': 'pending',
+        })
+        .select()
+        .single();
+
+          final userResponse = await supabase
+          .from('users')
+          .select()
+          .eq('id', widget.customerId)
+          .single();
+
+          final Person currentUser = Person.fromMap(userResponse);
+
+
 
       if (!mounted) return;
       
-      await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Order Confirmed"),
-          content: const Text("Your order has been successfully placed!"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop(true);
-              },
-              child: const Text("OK"),
-            ),
-          ],
+       Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SuccessPaymentPage(
+          person: currentUser,
         ),
-      );
+      ),
+    );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -759,7 +767,7 @@ class _OrderScreenState extends State<OrderScreen> {
                 ),
               )
             : Text(
-                "Pay Now",
+                "Confirm Order",
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,

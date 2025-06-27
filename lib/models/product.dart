@@ -31,9 +31,9 @@ class Product {
       id: map['id'],
       name: map['name'],
       description: map['description'],
-      price: (map['price'] as num).toDouble(),
+      price: double.tryParse(map['price'].toString()) ?? 0,
       idTenant: map['tenant_id'],
-      address: map['address'] ?? '',
+      address: map['address'],
       is_active: map['is_active'],
       image: map['image'],
     );

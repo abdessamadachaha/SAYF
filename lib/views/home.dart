@@ -4,6 +4,8 @@ import 'package:sayf/constants.dart';
 import 'package:sayf/models/person.dart';
 import 'package:sayf/views/favorite.dart';
 import 'package:sayf/views/homepage.dart';
+import 'package:sayf/views/orderList.dart';
+import 'package:sayf/views/profile_screen.dart';
 
 class Home extends StatefulWidget {
   final Person person;
@@ -20,7 +22,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-      final pages = [Homepage(person: widget.person), FavoriteScreen(), FavoriteScreen()];
+      final pages = [Homepage(person: widget.person), FavoriteScreen(), MyOrdersPage(customerId: widget.person.id), ProfileScreen(person: widget.person)];
 
     return Scaffold(
       // Your body content here
@@ -39,6 +41,10 @@ class _HomeState extends State<Home> {
           BottomNavigationBarItem(
             icon: Icon(LucideIcons.heart, size: 25),
             label: 'Wishlist',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(LucideIcons.listOrdered, size: 25),
+            label: 'Orders',
           ),
           BottomNavigationBarItem(
             icon: Icon(LucideIcons.user, size: 25),
