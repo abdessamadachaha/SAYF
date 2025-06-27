@@ -38,8 +38,21 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     } catch (e) {
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("خطأ في تحميل الطلبات: $e")),
+        SnackBar(content: Text("Error loading orders: $e")),
       );
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'confirmed':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -47,59 +60,90 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:  Text('My Order', style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold),),
+        automaticallyImplyLeading: false, // ✅ No back arrow
+        title: Text(
+          'My Orders',
+          style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: KprimaryColor,
         foregroundColor: Colors.white,
         centerTitle: true,
+        elevation: 0,
       ),
+      backgroundColor: const Color(0xFFF8F8F8),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : orders.isEmpty
-              ? const Center(child: Text("No requests."))
+              ? Center(
+                  child: Text("No orders found.",
+                      style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey)),
+                )
               : ListView.builder(
+                  padding: const EdgeInsets.all(16),
                   itemCount: orders.length,
                   itemBuilder: (context, index) {
                     final order = orders[index];
                     final product = order['product'];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    final String imageUrl = product['image'];
+                    final String name = product['name'];
+                    final String status = order['status'];
+                    final DateTime start = DateTime.parse(order['start_day']);
+                    final DateTime end = DateTime.parse(order['end_day']);
+                    final double price = order['total_price'];
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
                       child: ListTile(
+                        contentPadding: const EdgeInsets.all(12),
                         leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           child: Image.network(
-                            product['image'],
+                            imageUrl,
                             width: 60,
                             height: 60,
                             fit: BoxFit.cover,
                           ),
                         ),
-                        title: Text(product['name']),
-                        subtitle: Text(
-                          'From ${DateFormat.yMMMd().format(DateTime.parse(order['start_day']))} '
-                          'To ${DateFormat.yMMMd().format(DateTime.parse(order['end_day']))}',
-                        ),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        title: Text(name,
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${order['total_price']} MAD'),
                             const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: order['status'] == 'confirmed'
-                                    ? Colors.green
-                                    : (order['status'] == 'pending'
-                                        ? Colors.orange
-                                        : Colors.red),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                order['status'],
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
-                              ),
+                            Text(
+                              'From ${DateFormat.yMMMd().format(start)} to ${DateFormat.yMMMd().format(end)}',
+                              style: GoogleFonts.poppins(fontSize: 12),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Total: ${price.toStringAsFixed(2)} MAD',
+                              style: GoogleFonts.poppins(
+                                  fontSize: 13, fontWeight: FontWeight.w500),
                             ),
                           ],
+                        ),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(status),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            status,
+                            style: GoogleFonts.poppins(
+                                fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                     );
