@@ -131,36 +131,41 @@ class FavoriteProvider extends ChangeNotifier {
   String? get customerId => _supabase.auth.currentUser?.id;
 
   Future<void> initialize() async {
-    if (customerId != null) await fetchFavorites();
-    _supabase.auth.onAuthStateChange.listen((event) async {
-      if (customerId != null) {
-        await fetchFavorites();
-      } else {
-        _favorites.clear();
-        notifyListeners();
-      }
-    });
-  }
+  final userId = customerId;
+  if (userId != null) await fetchFavorites(userId);
 
-  Future<void> fetchFavorites() async {
-    try {
-      final response = await _supabase
-          .from('favorite')
-          .select('product_id, product:product_id(*)')
-          .eq('customer_id', customerId!);
-
+  _supabase.auth.onAuthStateChange.listen((event) async {
+    final currentUserId = customerId;
+    if (currentUserId != null) {
+      await fetchFavorites(currentUserId);
+    } else {
       _favorites.clear();
-
-      for (final item in response) {
-        if (item['product'] != null) {
-          _favorites.add(Product.fromMap(item['product']));
-        }
-      }
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error fetching favorites: $e');
     }
+  });
+}
+
+
+  Future<void> fetchFavorites(String customerId) async {
+  try {
+    final response = await _supabase
+        .from('favorite')
+        .select('product_id, product:product_id(*)')
+        .eq('customer_id', customerId);
+
+    _favorites.clear();
+
+    for (final item in response) {
+      if (item['product'] != null) {
+        _favorites.add(Product.fromMap(item['product']));
+      }
+    }
+    notifyListeners();
+  } catch (e) {
+    debugPrint('Error fetching favorites: $e');
   }
+}
+
 
   void toggleProduct(Product product) async {
     if (_favorites.any((p) => p.id == product.id)) {

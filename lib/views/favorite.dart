@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:sayf/constants.dart';
+import 'package:sayf/models/person.dart';
 import 'package:sayf/models/product.dart';
 import 'package:sayf/provider/favorite_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,7 +9,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 
 class FavoriteScreen extends StatefulWidget {
-  const FavoriteScreen({super.key});
+    final Person person;
+
+  FavoriteScreen({super.key, required this.person});
 
   @override
   State<FavoriteScreen> createState() => _FavoriteScreenState();
@@ -31,7 +34,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
         _isLoading = true;
         _errorMessage = null;
       });
-      await provider.fetchFavorites();
+      await provider.fetchFavorites(widget.person.id);
+
     } catch (e) {
       setState(() {
         _errorMessage = 'فشل تحميل قائمة التفضيلات';

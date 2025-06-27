@@ -89,7 +89,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                     final String status = order['status'];
                     final DateTime start = DateTime.parse(order['start_day']);
                     final DateTime end = DateTime.parse(order['end_day']);
-                    final double price = order['total_price'];
+                    final double price = (order['total_price'] as num).toDouble();
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),

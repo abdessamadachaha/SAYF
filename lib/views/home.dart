@@ -30,7 +30,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-      final pages = [Homepage(person: widget.person), FavoriteScreen(), MyOrdersPage(customerId: widget.person.id), ProfileScreen(person: widget.person)];
+      final pages = [Homepage(person: widget.person), FavoriteScreen(person: widget.person,), MyOrdersPage(customerId: widget.person.id), ProfileScreen(person: widget.person)];
 
     return Scaffold(
       // Your body content here
