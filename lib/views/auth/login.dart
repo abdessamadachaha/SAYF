@@ -98,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(builder: (_) => Home(person: person)),
       );
-    } else if (role == 'tennant') {
+    } else if (role == 'tenant') {
       Navigator.pushReplacementNamed(context, '/tennat-dashboard');
     } else if (role == 'admin') {
       Navigator.pushReplacementNamed(context, '/admin-dashboard');

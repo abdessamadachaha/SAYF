@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:sayf/config/supbase.dart';
 import 'package:sayf/provider/favorite_provider.dart';
+import 'package:sayf/views/admin/admin_dashboard.dart';
 import 'package:sayf/views/auth/login.dart';
+import 'package:sayf/views/auth/signup.dart';
 import 'package:sayf/views/home.dart';
 import 'package:sayf/views/homepage.dart';
+import 'package:sayf/views/seller/seller_dash.dart';
 import 'package:sayf/views/splash_scree.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
@@ -36,6 +39,9 @@ class MyApp extends StatelessWidget {
         routes: {
           
           '/login': (_) => const LoginScreen(),
+          '/signup': (_) => const Signup(),
+          '/tennat-dashboard': (_) => const SellerPage(),
+          '/admin-dashboard': (_) => const AdminDashboard(),
        
         },
 
