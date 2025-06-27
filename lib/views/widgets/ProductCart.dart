@@ -112,16 +112,34 @@ Widget buildProductCard(BuildContext context, Map<String, dynamic> product) {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          child: Text(
-            'MAD ${productObj.price.toStringAsFixed(2)}',
-            style: GoogleFonts.poppins(
-              color: KaccentColor,
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
+  padding: const EdgeInsets.symmetric(horizontal: 6),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(
+        'MAD ${productObj.price.toStringAsFixed(2)}',
+        style: GoogleFonts.poppins(
+          color: KaccentColor,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      Expanded(
+        child: Text(
+          productObj.address,
+          textAlign: TextAlign.end,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: Colors.grey[600],
           ),
         ),
+      ),
+    ],
+  ),
+),
+
         const SizedBox(height: 8),
       ],
     ),

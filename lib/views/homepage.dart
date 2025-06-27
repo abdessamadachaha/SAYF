@@ -3,6 +3,8 @@ import 'package:flutter_svg/svg.dart';
 import 'package:sayf/constants.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:sayf/models/person.dart';
+import 'package:sayf/views/home.dart';
+import 'package:sayf/views/profile_screen.dart';
 import 'package:sayf/views/widgets/ProductCart.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -32,8 +34,9 @@ class _HomepageState extends State<Homepage> {
     }
 
     if (searchQuery.isNotEmpty) {
-      query = query.ilike('name', '%$searchQuery%');
-    }
+  query = query.or('name.ilike.%$searchQuery%,address.ilike.%$searchQuery%');
+}
+
 
     final response = await query;
     return response;
@@ -55,11 +58,14 @@ class _HomepageState extends State<Homepage> {
         leading: Padding(
           padding:  EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           child: GestureDetector(
-            // onTap: () => Navigator.push(
-            //           context,
-            //           MaterialPageRoute(
-            //             builder: (context) => ProfileScreen(person: widget.person),
-            //           ),
+            onTap: () => Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(
+    builder: (context) => Home(person: widget.person, initialIndex: 3),
+  ),
+),
+
+
             child: CircleAvatar(
               radius: 40,
               backgroundImage: widget.person.image != null

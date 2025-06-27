@@ -8,15 +8,23 @@ import 'package:sayf/views/orderList.dart';
 import 'package:sayf/views/profile_screen.dart';
 
 class Home extends StatefulWidget {
-  final Person person;
-   Home({super.key, required this.person});
+   final Person person;
+  final int initialIndex;
+
+  const Home({super.key, required this.person, this.initialIndex = 0});
 
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+
+   @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
 
 
