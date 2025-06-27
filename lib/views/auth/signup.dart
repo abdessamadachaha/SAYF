@@ -6,6 +6,7 @@ import 'package:sayf/constants.dart';
 import 'package:sayf/views/auth/login.dart';
 import 'package:sayf/views/widgets/move.dart';
 import 'package:sayf/views/widgets/snakbar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/button_widget.dart';
 import '../widgets/inputInfo.dart';
 
@@ -44,15 +45,34 @@ class _SignupState extends State<Signup> {
 
     setState(() => isLoading = true);
 
-    final result = await _authService.signup(fullName, email, phone, password);
+    try {
+      final response = await Supabase.instance.client.auth.signUp(
+        email: email,
+        password: password,
+        data: {
+          'name': fullName,
+          'phone': phone,
+        },
+      );
 
-    setState(() => isLoading = false);
+      if (response.user != null) {
+        ShowSnackBar(
+          context,
+          '✅ Signup successful. Please check your email to verify your account.',
+          Colors.green,
+        );
 
-    if (result == null) {
-      ShowSnackBar(context, '✅ Signup Successful! Please log in.', Colors.green);
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen()));
-    } else {
-      ShowSnackBar(context, result, Colors.red);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else {
+        ShowSnackBar(context, 'Signup failed. Try again.', Colors.red);
+      }
+    } catch (e) {
+      ShowSnackBar(context, 'Error: ${e.toString()}', Colors.red);
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 

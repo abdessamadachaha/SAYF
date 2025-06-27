@@ -12,7 +12,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   int _selectedIndex = 0;
-  final pages = [Homepage(), Homepage(), Homepage()];
+  // final pages = [Homepage(), Homepage(), Homepage()];
 
 
 
@@ -20,7 +20,7 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     return Scaffold(
       // Your body content here
-      body: pages[_selectedIndex],
+      // body: pages[_selectedIndex],
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,

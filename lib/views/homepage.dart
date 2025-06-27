@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:sayf/constants.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:sayf/models/Person.dart';
 import 'package:sayf/views/widgets/ProductCart.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Homepage extends StatefulWidget {
-  const Homepage({super.key});
+  final Person person;
+
+  const Homepage({super.key, required this.person});
 
   @override
   State<Homepage> createState() => _HomepageState();
@@ -17,9 +20,18 @@ class _HomepageState extends State<Homepage> {
   String searchQuery = '';
 
   Future<List<dynamic>> fetchProducts() async {
-    final supabase = Supabase.instance.client;
+  final supabase = Supabase.instance.client;
+  final currentUser = supabase.auth.currentUser;
+
+  try {
     var query = supabase.from('products').select();
 
+    // Exclure les produits de l'utilisateur connecté s'il est customer
+    if (widget.person.role == 'customer' && currentUser != null) {
+      query = query.neq('user_id', currentUser.id);
+    }
+
+    // Filtrer par catégorie
     if (selectedCategoryIndex != 0) {
       final categoryName = Kcategories[selectedCategoryIndex];
       final categoryId = KcategoryMap[categoryName];
@@ -28,20 +40,27 @@ class _HomepageState extends State<Homepage> {
       }
     }
 
+    // Filtrer par recherche
     if (searchQuery.isNotEmpty) {
       query = query.ilike('name', '%$searchQuery%');
     }
 
     final response = await query;
     return response;
+  } catch (e) {
+    print("❌ Error in fetchProducts(): $e");
+    return [];
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: KprimaryColor,
-        title: const Text('Abdessamad Achaha', style: TextStyle(color: Colors.white)),
+        title: Text(widget.person.name, style: const TextStyle(color: Colors.white)),
         leading: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           child: const CircleAvatar(
