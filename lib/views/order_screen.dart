@@ -13,6 +13,7 @@ class OrderScreen extends StatefulWidget {
   final Product product;
   final String customerId;
 
+
   const OrderScreen({
     super.key,
     required this.product,
@@ -283,33 +284,34 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 
   Future<void> _placeOrder() async {
-    if (!_formKey.currentState!.validate()) return;
-    
-    if (startDate == null || endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select rental dates")),
-      );
-      return;
-    }
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => isPlacingOrder = true);
+  if (startDate == null || endDate == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please select rental dates")),
+    );
+    return;
+  }
 
-    final available = await _checkAvailability();
+  setState(() => isPlacingOrder = true);
 
-    if (!available) {
-      setState(() => isPlacingOrder = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("This product is already booked for selected dates.")),
-      );
-      return;
-    }
+  final available = await _checkAvailability();
 
-    try {
-      final response = await supabase
+  if (!available) {
+    setState(() => isPlacingOrder = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("This product is already booked for selected dates.")),
+    );
+    return;
+  }
+
+  try {
+    final response = await supabase
         .from('orders')
         .insert({
           'product_id': widget.product.id,
           'customer_id': widget.customerId,
+          'tenant_id': widget.product.idTenant, // ✅ AJOUTÉ ICI
           'start_day': startDate!.toIso8601String(),
           'end_day': endDate!.toIso8601String(),
           'total_price': totalPrice,
@@ -319,37 +321,34 @@ class _OrderScreenState extends State<OrderScreen> {
         .select()
         .single();
 
-          final userResponse = await supabase
-          .from('users')
-          .select()
-          .eq('id', widget.customerId)
-          .single();
+    final userResponse = await supabase
+        .from('users')
+        .select()
+        .eq('id', widget.customerId)
+        .single();
 
-          final Person currentUser = Person.fromMap(userResponse);
+    final Person currentUser = Person.fromMap(userResponse);
 
+    if (!mounted) return;
 
-
-      if (!mounted) return;
-      
-       Navigator.pushReplacement(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => SuccessPaymentPage(
-          person: currentUser,
-        ),
+        builder: (_) => SuccessPaymentPage(person: currentUser),
       ),
     );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${e.toString()}")),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => isPlacingOrder = false);
-      }
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: ${e.toString()}")),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => isPlacingOrder = false);
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

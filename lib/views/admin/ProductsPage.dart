@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sayf/constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProductsPage extends StatefulWidget {
   const ProductsPage({super.key});
@@ -42,26 +43,47 @@ class _ProductsPageState extends State<ProductsPage> {
     });
   }
 
-  Future<void> deleteProduct(String id) async {
+  Future<void> toggleProductStatus(String id, bool currentStatus) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Supprimer ce produit ?"),
-        content: const Text("Cette action est irréversible."),
+        title: Text(currentStatus ? "Désactiver ce produit ?" : "Restaurer ce produit ?"),
+        content: Text(currentStatus
+            ? "Il ne sera plus visible, mais les données resteront."
+            : "Le produit sera de nouveau visible."),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Annuler")),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Annuler"),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text("Supprimer"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: currentStatus ? Colors.red : Colors.green,
+            ),
+            child: Text(currentStatus ? "Désactiver" : "Restaurer"),
           ),
         ],
       ),
     );
 
-    if (confirm == true) {
-      await supabase.from('products').delete().eq('id', id);
-      fetchProducts();
+    if (confirm != true) return;
+
+    try {
+      await supabase.from('products').update({'is_active': !currentStatus}).eq('id', id);
+      await fetchProducts();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(currentStatus
+              ? "Produit désactivé avec succès."
+              : "Produit restauré avec succès."),
+        ),
+      );
+    } catch (e) {
+      debugPrint("Erreur suppression : $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur : \${e.toString()}")),
+      );
     }
   }
 
@@ -97,35 +119,149 @@ class _ProductsPageState extends State<ProductsPage> {
                           itemCount: filteredProducts.length,
                           itemBuilder: (_, i) {
                             final product = filteredProducts[i];
-                            return Card(
-                              color: KbackgroundColor,
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(color: KaccentColor.withOpacity(0.2)),
+                            final isActive = product['is_active'] == true;
+
+                            return InkWell(
+                              onTap: () => showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                                ),
+                                builder: (_) {
+                                  return DraggableScrollableSheet(
+                                    expand: false,
+                                    initialChildSize: 0.6,
+                                    maxChildSize: 0.9,
+                                    builder: (context, scrollController) {
+                                      return SingleChildScrollView(
+                                        controller: scrollController,
+                                        padding: const EdgeInsets.all(20),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Center(
+                                              child: ClipRRect(
+                                                borderRadius: BorderRadius.circular(16),
+                                                child: product['image'] != null
+                                                    ? Image.network(product['image'],
+                                                        height: 180, fit: BoxFit.cover)
+                                                    : Container(
+                                                        height: 180,
+                                                        width: double.infinity,
+                                                        color: Colors.grey[300],
+                                                        child: const Icon(Icons.image_not_supported, size: 80),
+                                                      ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 20),
+                                            Text(
+                                              product['name'] ?? '',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              product['description'] ?? 'Aucune description',
+                                              style: GoogleFonts.poppins(fontSize: 15),
+                                            ),
+                                            const Divider(height: 24),
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.local_activity, size: 20),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  "Adresse : ${product['address'] ?? 'Inconnue'}",
+                                                  style: GoogleFonts.poppins(fontSize: 14),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.price_change_outlined, size: 20),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  "Prix : ${product['price']} DH",
+                                                  style: GoogleFonts.poppins(
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.teal,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
                               ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.all(12),
-                                leading: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: product['image'] != null
-                                      ? Image.network(
-                                          product['image'],
-                                          width: 60,
-                                          height: 60,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : const Icon(Icons.image_not_supported, size: 40),
+                              child: Card(
+                                color: Colors.white,
+                                elevation: 3,
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(color: KaccentColor.withOpacity(0.2)),
                                 ),
-                                title: Text(
-                                  product['name'] ?? '',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Text("Prix : ${product['price']} DH"),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => deleteProduct(product['id']),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: product['image'] != null
+                                            ? Image.network(
+                                                product['image'],
+                                                width: 70,
+                                                height: 70,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : Container(
+                                                width: 70,
+                                                height: 70,
+                                                color: Colors.grey.shade300,
+                                                child: const Icon(Icons.image_not_supported, size: 30),
+                                              ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              product['name'] ?? '',
+                                              style: GoogleFonts.poppins(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              "${product['price']} DH",
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 14,
+                                                color: Colors.indigo,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          isActive ? Icons.block : Icons.check_circle_outline,
+                                          color: isActive ? Colors.red : Colors.green,
+                                        ),
+                                        tooltip: isActive ? "Désactiver" : "Restaurer",
+                                        onPressed: () => toggleProductStatus(product['id'], isActive),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             );

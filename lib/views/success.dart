@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:sayf/views/home.dart';
 import 'package:sayf/views/homepage.dart';
 import '../../models/person.dart';
 
@@ -115,12 +116,11 @@ class _SuccessPaymentPageState extends State<SuccessPaymentPage> with SingleTick
                     opacity: _fadeAnimation,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pushAndRemoveUntil(
+                        Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => Homepage(person: widget.person),
+                            builder: (context) => Home(person: widget.person, initialIndex: 0),
                           ),
-                          (route) => false,
                         );
                       },
                       style: ElevatedButton.styleFrom(

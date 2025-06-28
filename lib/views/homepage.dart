@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sayf/constants.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:sayf/models/person.dart';
@@ -11,7 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 class Homepage extends StatefulWidget {
   final Person person;
-  Homepage({super.key, required this.person});
+  const Homepage({super.key, required this.person});
 
   @override
   State<Homepage> createState() => _HomepageState();
@@ -21,25 +21,57 @@ class _HomepageState extends State<Homepage> {
   int selectedCategoryIndex = 0;
   String searchQuery = '';
 
-  Future<List<dynamic>> fetchProducts() async {
-    final supabase = Supabase.instance.client;
-    var query = supabase.from('products').select();
+  List<Map<String, dynamic>> categories = [];
+  bool isLoadingCategories = true;
 
-    if (selectedCategoryIndex != 0) {
-      final categoryName = Kcategories[selectedCategoryIndex];
-      final categoryId = KcategoryMap[categoryName];
-      if (categoryId != null) {
-        query = query.eq('category_id', categoryId);
-      }
+  @override
+  void initState() {
+    super.initState();
+    fetchCategories();
+  }
+
+  Future<void> fetchCategories() async {
+    final supabase = Supabase.instance.client;
+    final response = await supabase.from('category').select('id, name').order('name');
+
+    if (mounted && response is List) {
+      setState(() {
+        categories = List<Map<String, dynamic>>.from(response);
+        isLoadingCategories = false;
+      });
+    }
+  }
+
+  Future<List<dynamic>> fetchProducts({
+    required int selectedCategoryIndex,
+    required String searchQuery,
+  }) async {
+    final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return [];
+
+    final queryBuilder = supabase
+        .from('products')
+        .select('*')
+        .neq('tenant_id', userId)
+        .eq('is_active', true);
+
+    var query = queryBuilder;
+
+    if (selectedCategoryIndex != 0 && selectedCategoryIndex - 1 < categories.length) {
+      final selectedCategory = categories[selectedCategoryIndex - 1];
+      final categoryId = selectedCategory['id'];
+      query = query.eq('category_id', categoryId);
     }
 
     if (searchQuery.isNotEmpty) {
-  query = query.or('name.ilike.%$searchQuery%,address.ilike.%$searchQuery%');
-}
+      query = query.filter('name', 'ilike', '%$searchQuery%')
+             .filter('address', 'ilike', '%$searchQuery%');
+    }
 
-
-    final response = await query;
-    return response;
+    final response = await query.order('created_at', ascending: false);
+      print('Fetched products: $response');
+      return response;
   }
 
   @override
@@ -52,25 +84,23 @@ class _HomepageState extends State<Homepage> {
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 17
+            fontSize: 17,
           ),
         ),
         leading: Padding(
-          padding:  EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           child: GestureDetector(
             onTap: () => Navigator.pushReplacement(
-  context,
-  MaterialPageRoute(
-    builder: (context) => Home(person: widget.person, initialIndex: 3),
-  ),
-),
-
-
+              context,
+              MaterialPageRoute(
+                builder: (context) => Home(person: widget.person, initialIndex: 3),
+              ),
+            ),
             child: CircleAvatar(
               radius: 40,
               backgroundImage: widget.person.image != null
-                            ? NetworkImage(widget.person.image!)
-                            : AssetImage('assets/avatar.jpg'),
+                  ? NetworkImage(widget.person.image!)
+                  : const AssetImage('assets/avatar.jpg') as ImageProvider,
             ),
           ),
         ),
@@ -88,36 +118,40 @@ class _HomepageState extends State<Homepage> {
                     borderRadius: BorderRadius.circular(30.0),
                   ),
                   child: TextField(
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.only(top: 12),
+                    decoration: const InputDecoration(
+                      contentPadding: EdgeInsets.only(top: 12),
                       border: InputBorder.none,
                       hintText: 'Search Here',
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon: const Icon(LucideIcons.search),
+                      hintStyle: TextStyle(color: Colors.grey),
+                      prefixIcon: Icon(LucideIcons.search),
                     ),
                     onChanged: (value) => setState(() => searchQuery = value),
                   ),
                 ),
                 const SizedBox(height: 15),
-                SizedBox(
-                  height: 40,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: Kcategories.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      return _buildCategoryChip(index, Kcategories[index]);
-                    },
-                  ),
-                ),
+                isLoadingCategories
+                    ? const CircularProgressIndicator()
+                    : SizedBox(
+                        height: 40,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: categories.length + 1,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final name = index == 0 ? 'All' : categories[index - 1]['name'];
+                            return _buildCategoryChip(index, name);
+                          },
+                        ),
+                      ),
               ],
             ),
           ),
-
-          /// ✅ Ce `Expanded` maintenant contient **seulement** le `FutureBuilder`
           Expanded(
             child: FutureBuilder<List<dynamic>>(
-              future: fetchProducts(),
+              future: fetchProducts(
+                selectedCategoryIndex: selectedCategoryIndex,
+                searchQuery: searchQuery,
+              ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -127,16 +161,17 @@ class _HomepageState extends State<Homepage> {
                     ),
                   );
                 }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Error loading products',
-                      style: TextStyle(color: Colors.red[400]),
-                    ),
-                  );
-                }
-
+                 if (snapshot.hasError) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: \${snapshot.error}'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    });
+                    return const SizedBox();
+                  }
                 final products = snapshot.data ?? [];
                 if (products.isEmpty) {
                   return Center(
@@ -165,14 +200,13 @@ class _HomepageState extends State<Homepage> {
                   padding: const EdgeInsets.only(top: 16, left: 10),
                   child: GridView.builder(
                     itemCount: products.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          mainAxisExtent: 280,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.75,
-                        ),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 280,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.75,
+                    ),
                     itemBuilder: (context, index) {
                       return buildProductCard(context, products[index]);
                     },

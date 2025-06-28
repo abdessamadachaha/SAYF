@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:sayf/constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as p;
@@ -148,84 +149,136 @@ class _AddEditProductPageState extends State<AddEditProductPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.product == null ? 'Ajouter un produit' : 'Modifier le produit'),
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      backgroundColor: KaccentColor,
+      elevation: 0,
+      title: Text(
+        widget.product == null ? '🆕 Ajouter un produit' : '✏️ Modifier le produit',
+        style: const TextStyle(fontWeight: FontWeight.bold),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              GestureDetector(
-                onTap: pickImage,
-                child: Container(
-                  height: 160,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: _imageBytes != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.memory(_imageBytes!, fit: BoxFit.cover),
-                        )
-                      : (_uploadedImageUrl != null
-                          ? Image.network(_uploadedImageUrl!, fit: BoxFit.cover)
-                          : const Center(child: Text('Cliquez pour choisir une image'))),
+      centerTitle: true,
+    ),
+    body: SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            GestureDetector(
+              onTap: pickImage,
+              child: Container(
+                height: 180,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
+                child: _imageBytes != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.memory(_imageBytes!, fit: BoxFit.cover),
+                      )
+                    : (_uploadedImageUrl != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.network(_uploadedImageUrl!, fit: BoxFit.cover),
+                          )
+                        : const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_photo_alternate, size: 50, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text('Appuyez pour ajouter une image', style: TextStyle(color: Colors.grey)),
+                              ],
+                            ),
+                          )),
               ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nom du produit'),
-                validator: (v) => v!.isEmpty ? 'Champ requis' : null,
+            ),
+            const SizedBox(height: 25),
+            _buildTextField(_nameController, 'Nom du produit', Icons.shopping_bag),
+            const SizedBox(height: 15),
+            _buildTextField(_descController, 'Description', Icons.description),
+            const SizedBox(height: 15),
+            _buildTextField(_priceController, 'Prix en DH', Icons.price_change, isNumber: true),
+            const SizedBox(height: 15),
+            _buildDropdownCategory(),
+            const SizedBox(height: 15),
+            _buildDropdownCity(),
+            const SizedBox(height: 30),
+            ElevatedButton.icon(
+              onPressed: saveProduct,
+              icon: const Icon(Icons.save_alt),
+              label: const Text(
+                'Enregistrer le produit',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _descController,
-                decoration: const InputDecoration(labelText: 'Description'),
-                validator: (v) => v!.isEmpty ? 'Champ requis' : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: KaccentColor,
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 6,
               ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _priceController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Prix en DH'),
-                validator: (v) => v!.isEmpty ? 'Champ requis' : null,
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<int>(
-                value: _selectedCategoryId,
-                decoration: const InputDecoration(labelText: 'Catégorie'),
-                items: categories.entries
-                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedCategoryId = v),
-                validator: (v) => v == null ? 'Sélectionnez une catégorie' : null,
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                value: _selectedCity,
-                decoration: const InputDecoration(labelText: 'Ville'),
-                items: moroccanCities
-                    .map((city) => DropdownMenuItem(value: city, child: Text(city)))
-                    .toList(),
-                onChanged: (value) => setState(() => _selectedCity = value),
-                validator: (value) => value == null ? 'Sélectionnez une ville' : null,
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton.icon(
-                onPressed: saveProduct,
-                icon: const Icon(Icons.save),
-                label: const Text('Enregistrer le produit'),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+Widget _buildTextField(TextEditingController controller, String label, IconData icon,
+    {bool isNumber = false}) {
+  return TextFormField(
+    controller: controller,
+    keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+    decoration: InputDecoration(
+      prefixIcon: Icon(icon),
+      labelText: label,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      filled: true,
+      fillColor: Colors.grey.shade100,
+    ),
+    validator: (val) => val == null || val.isEmpty ? 'Ce champ est requis' : null,
+  );
+}
+
+Widget _buildDropdownCategory() {
+  return DropdownButtonFormField<int>(
+    value: _selectedCategoryId,
+    decoration: InputDecoration(
+      prefixIcon: const Icon(Icons.category),
+      labelText: 'Catégorie',
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      filled: true,
+      fillColor: Colors.grey.shade100,
+    ),
+    items: categories.entries
+        .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+        .toList(),
+    onChanged: (v) => setState(() => _selectedCategoryId = v),
+    validator: (v) => v == null ? 'Sélectionnez une catégorie' : null,
+  );
+}
+
+Widget _buildDropdownCity() {
+  return DropdownButtonFormField<String>(
+    value: _selectedCity,
+    decoration: InputDecoration(
+      prefixIcon: const Icon(Icons.location_city),
+      labelText: 'Ville',
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      filled: true,
+      fillColor: Colors.grey.shade100,
+    ),
+    items: moroccanCities
+        .map((city) => DropdownMenuItem(value: city, child: Text(city)))
+        .toList(),
+    onChanged: (value) => setState(() => _selectedCity = value),
+    validator: (value) => value == null ? 'Sélectionnez une ville' : null,
+  );
+}
 }

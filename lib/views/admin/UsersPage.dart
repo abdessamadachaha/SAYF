@@ -20,16 +20,24 @@ class _UsersPageState extends State<UsersPage> {
   }
 
   Future<void> fetchUsers() async {
-    setState(() => isLoading = true);
+  setState(() => isLoading = true);
+  try {
     final response = await supabase
         .from('users')
         .select('id, name, email, is_ban, role, image')
+        .not('role', 'eq', 'admin') // ⛔ Exclure les admins
         .order('created_at', ascending: false);
+
     setState(() {
       users = response;
       isLoading = false;
     });
+  } catch (e) {
+    print('Erreur lors du chargement des utilisateurs : $e');
+    setState(() => isLoading = false);
   }
+}
+
 
   Future<void> toggleBan(String userId, bool currentBan) async {
     await supabase.from('users').update({'is_ban': !currentBan}).eq('id', userId);
@@ -51,44 +59,95 @@ class _UsersPageState extends State<UsersPage> {
                     final user = users[i];
                     final isBanned = user['is_ban'] ?? false;
                     return Card(
-                      elevation: 3,
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: isBanned ? Colors.red : KaccentColor.withOpacity(0.2)),
+  elevation: 4,
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(16),
+    side: BorderSide(
+      color: isBanned ? Colors.red.withOpacity(0.5) : KaccentColor.withOpacity(0.15),
+      width: 1,
+    ),
+  ),
+  child: Padding(
+    padding: const EdgeInsets.all(12),
+    child: Row(
+      children: [
+        CircleAvatar(
+          radius: 30,
+          backgroundImage: user['image'] != null && user['image'].toString().isNotEmpty
+              ? NetworkImage(user['image'])
+              : const AssetImage('assets/default-avatar.png') as ImageProvider,
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                user['name'] ?? 'Sans nom',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                user['email'] ?? '',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      "Rôle: ${user['role']}",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.indigo,
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(12),
-                        leading: CircleAvatar(
-                          backgroundImage: user['image'] != null
-                              ? NetworkImage(user['image'])
-                              : const AssetImage('assets/default-avatar.png') as ImageProvider,
-                          radius: 24,
-                        ),
-                        title: Text(user['name'] ?? 'Sans nom',
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(user['email'] ?? ''),
-                            Text("Rôle: ${user['role']}", style: const TextStyle(fontSize: 13)),
-                            if (isBanned)
-                              const Text(
-                                '🚫 Banni',
-                                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                              )
-                          ],
-                        ),
-                        trailing: IconButton(
-                          icon: Icon(
-                            isBanned ? Icons.lock_open : Icons.block,
-                            color: isBanned ? Colors.green : Colors.red,
-                          ),
-                          tooltip: isBanned ? "Débloquer l'utilisateur" : "Bannir l'utilisateur",
-                          onPressed: () => toggleBan(user['id'], isBanned),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (isBanned)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        '🚫 Banni',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    );
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          icon: Icon(
+            isBanned ? Icons.lock_open : Icons.block,
+            color: isBanned ? Colors.green : Colors.red,
+            size: 28,
+          ),
+          tooltip: isBanned ? "Débloquer l'utilisateur" : "Bannir l'utilisateur",
+          onPressed: () => toggleBan(user['id'], isBanned),
+        ),
+      ],
+    ),
+  ),
+);
+
                   },
                 ),
     );
